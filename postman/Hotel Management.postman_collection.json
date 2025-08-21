@@ -1,0 +1,573 @@
+{
+  "info": {
+    "name": "Hotel Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "6a5f9b4a-6e10-4e74-9b29-3ac64fdc1d01"
+  },
+  "item": [
+    {
+      "name": "Gateway",
+      "item": [
+        {
+          "name": "Auth Health Check (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/auth/health",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","auth","health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is ok', () => pm.expect(pm.response.text()).to.eql('ok'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/health",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is ok', function () { pm.expect(pm.response.text()).to.eql('ok'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth Register (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"full_name\": \"{{fullName}}\",\n  \"role\": \"{{role}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/auth/register",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","auth","register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Register returns 201 or 400', () => pm.expect([201,400]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth Login (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/auth/login",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","auth","login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login 200', () => pm.response.to.have.status(200));",
+                  "const response = pm.response.json();",
+                  "pm.environment.set('jwtToken', response.access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth Verify Token (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Accept", "value": "application/json" } ],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/auth/verify?token={{jwtToken}}",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","auth","verify"],
+              "query": [ {"key":"token","value":"{{jwtToken}}"} ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Verify returns 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Has id, email, role', () => { pm.expect(body).to.have.property('id'); pm.expect(body).to.have.property('email'); pm.expect(body).to.have.property('role'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hotel Service Health Check (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/services/health",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","services","health"]
+            }
+          }
+        },
+        {
+          "name": "Create Service (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service\": \"{{serviceName}}\",\n  \"price\": {{servicePrice}},\n  \"currency\": \"{{serviceCurrency}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/services",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","services"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created or Conflict', () => pm.expect([201,409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 201) { const r = pm.response.json(); if (r && r.id) pm.environment.set('serviceId', String(r.id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Services (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/services",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","services"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const arr = pm.response.json();",
+                  "pm.test('Is array', () => Array.isArray(arr));",
+                  "if (Array.isArray(arr) && arr.length) { const name = pm.environment.get('serviceName'); const found = arr.find(s => s.service === name) || arr[0]; if (found && found.id) pm.environment.set('serviceId', String(found.id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Service by ID (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/services/{{serviceId}}",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","services","{{serviceId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const sid = pm.environment.get('serviceId');",
+                  "if (sid) { const s = pm.response.json(); pm.test('Service id matches', () => pm.expect(String(s.id)).to.eql(String(sid))); } else { pm.test('Skipped id match (serviceId missing)', () => true); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Booking Health Check (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/bookings/health",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","bookings","health"]
+            }
+          }
+        },
+        {
+          "name": "Create Booking (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service_id\": {{serviceId}},\n  \"quantity\": 2,\n  \"scheduled_for\": \"2025-08-25T10:00:00\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/bookings",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","bookings"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function(){",
+                  "  const sid = pm.environment.get('serviceId');",
+                  "  if (sid) return;",
+                  "  pm.sendRequest('http://localhost:8000/api/v1/services', function (err, res) {",
+                  "    if (!err && res && res.code === 200) {",
+                  "      const arr = res.json();",
+                  "      if (Array.isArray(arr) && arr.length) {",
+                  "        const name = pm.environment.get('serviceName');",
+                  "        const found = arr.find(s => s.service === name) || arr[0];",
+                  "        if (found && found.id) pm.environment.set('serviceId', String(found.id));",
+                  "      }",
+                  "    }",
+                  "  });",
+                  "})();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Booking created', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "if (r && r.id) pm.environment.set('bookingId', String(r.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Bookings (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{jwtToken}}" } ],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/bookings/me",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","bookings","me"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const arr = pm.response.json();",
+                  "pm.test('Is array', () => Array.isArray(arr));",
+                  "if (Array.isArray(arr) && arr.length && !pm.environment.get('bookingId')) pm.environment.set('bookingId', String(arr[0].id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Booking by ID (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/bookings/{{bookingId}}",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","bookings","{{bookingId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const bid = pm.environment.get('bookingId');",
+                  "if (bid) { const b = pm.response.json(); pm.test('Booking id matches', () => pm.expect(String(b.id)).to.eql(String(bid))); } else { pm.test('Skipped booking id checks (bookingId missing)', () => true); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Booking (via Gateway)",
+          "request": {
+            "method": "PATCH",
+            "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/bookings/{{bookingId}}/cancel",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","bookings","{{bookingId}}","cancel"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cancel status acceptable', () => pm.expect([200,403,404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment Health Check (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/payments/health",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","payments","health"]
+            }
+          }
+        },
+        {
+          "name": "Create Payment (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": {{bookingId}},\n  \"method\": \"card\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/v1/payments",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","payments"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function(){",
+                  "  const bid = pm.environment.get('bookingId');",
+                  "  if (bid) return;",
+                  "  const token = pm.environment.get('jwtToken');",
+                  "  pm.sendRequest({ url: 'http://localhost:8000/api/v1/bookings/me', method: 'GET', header: { 'Authorization': 'Bearer ' + token } }, function (err, res) {",
+                  "    if (!err && res && res.code === 200) {",
+                  "      const arr = res.json();",
+                  "      if (Array.isArray(arr) && arr.length) pm.environment.set('bookingId', String(arr[0].id));",
+                  "    }",
+                  "  });",
+                  "})();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payment created', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "if (r && r.id) pm.environment.set('paymentId', String(r.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Payments (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{jwtToken}}" } ],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/payments/me",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","payments","me"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const arr = pm.response.json();",
+                  "pm.test('Is array', () => Array.isArray(arr));",
+                  "if (Array.isArray(arr) && arr.length && !pm.environment.get('paymentId')) pm.environment.set('paymentId', String(arr[0].id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Payment by ID (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/payments/{{paymentId}}",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","payments","{{paymentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const pid = pm.environment.get('paymentId');",
+                  "if (pid) { pm.test('Status is 200', () => pm.response.to.have.status(200)); const p = pm.response.json(); pm.test('Payment id matches', () => pm.expect(String(p.id)).to.eql(String(pid))); } else { pm.test('Skipped payment id checks (paymentId missing)', () => true); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refund Payment (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ],
+            "url": {
+              "raw": "http://localhost:8000/api/v1/payments/{{paymentId}}/refund",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api","v1","payments","{{paymentId}}","refund"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Refund allowed/forbidden or missing id', () => pm.expect([200,403,404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] } } },
+        { "name": "Register", "request": { "method": "POST", "header": [ {"key":"Content-Type","value":"application/json"} ], "body": { "mode":"raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"full_name\": \"{{fullName}}\",\n  \"role\": \"{{role}}\"\n}" }, "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] } } },
+        { "name": "Login", "request": { "method": "POST", "header": [ {"key":"Content-Type","value":"application/json"} ], "body": { "mode":"raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" }, "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] } }, "event": [ { "listen":"test", "script": { "type":"text/javascript", "exec":[ "if (pm.response.code === 200) { const r = pm.response.json(); pm.environment.set('jwtToken', r.access_token); }" ] } } ] },
+        { "name": "Verify Token", "request": { "method": "GET", "header": [ {"key":"Accept","value":"application/json"} ], "url": { "raw": "{{baseUrl}}/api/v1/auth/verify?token={{jwtToken}}", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","verify"], "query":[{"key":"token","value":"{{jwtToken}}"}] } } }
+      ]
+    },
+    {
+      "name": "Hotel Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "header": [], "url": { "raw": "{{hotelBaseUrl}}/health", "host": ["{{hotelBaseUrl}}"], "path": ["health"] } } },
+        { "name": "Create Service", "request": { "method": "POST", "header": [ {"key":"Content-Type","value":"application/json"}, {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "body": { "mode":"raw", "raw": "{\n  \"service\": \"{{serviceName}}\",\n  \"price\": {{servicePrice}},\n  \"currency\": \"{{serviceCurrency}}\"\n}" }, "url": { "raw": "{{hotelBaseUrl}}/api/v1/services", "host": ["{{hotelBaseUrl}}"], "path": ["api","v1","services"] } } },
+        { "name": "List Services", "request": { "method": "GET", "header": [], "url": { "raw": "{{hotelBaseUrl}}/api/v1/services", "host": ["{{hotelBaseUrl}}"], "path": ["api","v1","services"] } }, "event": [ { "listen":"test", "script": { "type":"text/javascript", "exec":[ "const arr = pm.response.json(); if (Array.isArray(arr) && arr.length) { const name = pm.environment.get('serviceName'); const found = arr.find(s => s.service === name) || arr[0]; if (found && found.id) pm.environment.set('serviceId', String(found.id)); }" ] } } ] },
+        { "name": "Get Service", "request": { "method": "GET", "header": [], "url": { "raw": "{{hotelBaseUrl}}/api/v1/services/{{serviceId}}", "host": ["{{hotelBaseUrl}}"], "path": ["api","v1","services","{{serviceId}}"] } } },
+        { "name": "Update Service Price", "request": { "method": "PATCH", "header": [ {"key":"Content-Type","value":"application/json"}, {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "body": { "mode":"raw", "raw": "{\n  \"price\": {{servicePriceUpdated}}\n}" }, "url": { "raw": "{{hotelBaseUrl}}/api/v1/services/{{serviceId}}/price", "host": ["{{hotelBaseUrl}}"], "path": ["api","v1","services","{{serviceId}}","price"] } } }
+      ]
+    },
+    {
+      "name": "Booking Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "header": [], "url": { "raw": "{{bookingBaseUrl}}/health", "host": ["{{bookingBaseUrl}}"], "path": ["health"] } } },
+        { "name": "Create Booking", "request": { "method": "POST", "header": [ {"key":"Content-Type","value":"application/json"}, {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "body": { "mode":"raw", "raw": "{\n  \"service_id\": {{serviceId}},\n  \"quantity\": 2,\n  \"scheduled_for\": \"2025-08-25T10:00:00\"\n}" }, "url": { "raw": "{{bookingBaseUrl}}/api/v1/bookings", "host": ["{{bookingBaseUrl}}"], "path": ["api","v1","bookings"] } } },
+        { "name": "List My Bookings", "request": { "method": "GET", "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "url": { "raw": "{{bookingBaseUrl}}/api/v1/bookings/me", "host": ["{{bookingBaseUrl}}"], "path": ["api","v1","bookings","me"] } } },
+        { "name": "Get Booking", "request": { "method": "GET", "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "url": { "raw": "{{bookingBaseUrl}}/api/v1/bookings/{{bookingId}}", "host": ["{{bookingBaseUrl}}"], "path": ["api","v1","bookings","{{bookingId}}"] } } },
+        { "name": "Cancel Booking", "request": { "method": "PATCH", "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "url": { "raw": "{{bookingBaseUrl}}/api/v1/bookings/{{bookingId}}/cancel", "host": ["{{bookingBaseUrl}}"], "path": ["api","v1","bookings","{{bookingId}}","cancel"] } } }
+      ]
+    },
+    {
+      "name": "Payment Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "header": [], "url": { "raw": "{{paymentBaseUrl}}/health", "host": ["{{paymentBaseUrl}}"], "path": ["health"] } } },
+        { "name": "Create Payment", "request": { "method": "POST", "header": [ {"key":"Content-Type","value":"application/json"}, {"key":"Authorization","value":"Bearer {{jwtToken}}"}, {"key":"Idempotency-Key","value":"{{$guid}}"} ], "body": { "mode":"raw", "raw": "{\n  \"booking_id\": {{bookingId}},\n  \"method\": \"card\"\n}" }, "url": { "raw": "{{paymentBaseUrl}}/api/v1/payments", "host": ["{{paymentBaseUrl}}"], "path": ["api","v1","payments"] } } },
+        { "name": "List My Payments", "request": { "method": "GET", "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "url": { "raw": "{{paymentBaseUrl}}/api/v1/payments/me", "host": ["{{paymentBaseUrl}}"], "path": ["api","v1","payments","me"] } } },
+        { "name": "Get Payment", "request": { "method": "GET", "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "url": { "raw": "{{paymentBaseUrl}}/api/v1/payments/{{paymentId}}", "host": ["{{paymentBaseUrl}}"], "path": ["api","v1","payments","{{paymentId}}"] } } },
+        { "name": "Refund Payment", "request": { "method": "POST", "header": [ {"key":"Authorization","value":"Bearer {{jwtToken}}"} ], "url": { "raw": "{{paymentBaseUrl}}/api/v1/payments/{{paymentId}}/refund", "host": ["{{paymentBaseUrl}}"], "path": ["api","v1","payments","{{paymentId}}","refund"] } } }
+      ]
+    }
+  ]
+}

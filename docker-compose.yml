@@ -1,0 +1,210 @@
+services:
+  auth-mysql:
+    image: mysql:8.0
+    container_name: auth-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${AUTH_MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: auth_db
+      MYSQL_USER: auth_user
+      MYSQL_PASSWORD: ${AUTH_MYSQL_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - auth-mysql-data:/var/lib/mysql
+      - ./auth-service/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${AUTH_MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  hotel-mysql:
+    image: mysql:8.0
+    container_name: hotel-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${HOTEL_MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: hotel_db
+      MYSQL_USER: hotel_user
+      MYSQL_PASSWORD: ${HOTEL_MYSQL_PASSWORD}
+    ports:
+      - "3308:3306"
+    volumes:
+      - hotel-mysql-data:/var/lib/mysql
+      - ./hotel-service/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${HOTEL_MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  booking-mysql:
+    image: mysql:8.0
+    container_name: booking-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${BOOKING_MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: booking_db
+      MYSQL_USER: booking_user
+      MYSQL_PASSWORD: ${BOOKING_MYSQL_PASSWORD}
+    ports:
+      - "3309:3306"
+    volumes:
+      - booking-mysql-data:/var/lib/mysql
+      - ./booking-service/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${BOOKING_MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  payment-mysql:
+    image: mysql:8.0
+    container_name: payment-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${PAYMENT_MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: payment_db
+      MYSQL_USER: payment_user
+      MYSQL_PASSWORD: ${PAYMENT_MYSQL_PASSWORD}
+    ports:
+      - "3310:3306"
+    volumes:
+      - payment-mysql-data:/var/lib/mysql
+      - ./payment-service/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${PAYMENT_MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOSTS: auth-mysql,hotel-mysql,booking-mysql,payment-mysql
+      PMA_ARBITRARY: 1
+    ports:
+      - "9001:80"
+    depends_on:
+      - auth-mysql
+      - hotel-mysql
+      - booking-mysql
+      - payment-mysql
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${AUTH_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "8001:8001"
+    depends_on:
+      auth-mysql:
+        condition: service_healthy
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8001"]
+
+  hotel-service:
+    build: ./hotel-service
+    container_name: hotel-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Hotel service uses its own DB and user
+      DATABASE_URL: ${HOTEL_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "8002:8002"
+    depends_on:
+      hotel-mysql:
+        condition: service_healthy
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8002"]
+
+  booking-service:
+    build: ./booking-service
+    container_name: booking-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${BOOKING_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      HOTEL_SERVICE_BASE_URL: http://hotel-service:8002
+    ports:
+      - "8003:8003"
+    depends_on:
+      booking-mysql:
+        condition: service_healthy
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8003"]
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${PAYMENT_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      BOOKING_SERVICE_URL: http://booking-service:8003
+    ports:
+      - "8004:8004"
+    depends_on:
+      payment-mysql:
+        condition: service_healthy
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8004"]
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: gateway
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - hotel-service
+      - booking-service
+      - payment-service
+
+  frontend:
+    image: node:20-alpine
+    container_name: frontend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "rm -f package-lock.json && npm install && npm run dev"
+    environment:
+      VITE_API_BASE: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+
+volumes:
+  auth-mysql-data:
+  hotel-mysql-data:
+  booking-mysql-data:
+  payment-mysql-data:
