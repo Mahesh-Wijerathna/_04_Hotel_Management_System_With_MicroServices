@@ -93,7 +93,7 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/hotel-service:latest ./hotel-service
           docker build -t ${{ secrets.DOCKER_USERNAME }}/booking-service:latest ./booking-service
           docker build -t ${{ secrets.DOCKER_USERNAME }}/payment-service:latest ./payment-service
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend:latest ./frontend
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend:latest -f ./frontend/Dockerfile ./frontend
           docker build -t ${{ secrets.DOCKER_USERNAME }}/gateway:latest ./gateway
 
           docker push ${{ secrets.DOCKER_USERNAME }}/auth-service:latest
