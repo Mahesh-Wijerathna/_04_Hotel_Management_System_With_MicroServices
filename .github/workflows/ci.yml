@@ -69,7 +69,9 @@ jobs:
 
       - name: Run frontend build
         working-directory: ./frontend
-        run: npm run build
+        run: |
+          rm -rf node_modules package-lock.json   # clean up
+          npm install
 
   docker-build:
     runs-on: ubuntu-latest
