@@ -96,3 +96,54 @@ docker push umeshgayashan/payment-service:latest
 docker push umeshgayashan/frontend:latest
 docker push umeshgayashan/gateway:latest
 ```
+# Kubernetes (K8s)
+
+- A container orchestration system.
+
+- Helps you run, scale, and manage containers across multiple machines (or even just one laptop).
+
+### Why it’s useful:
+
+- Automatically restarts containers if they fail.
+- Can run multiple replicas of a service to handle more traffic.
+- Manages networking so services can find each other.
+- Handles persistent storage for databases.</br>
+
+Think of Kubernetes as the manager of all containers, making sure they work correctly, scale properly, and can communicate with each other.
+
+# Kubernetes Cluster
+
+A group of machines (nodes) where Kubernetes runs containers.
+
+Components of a cluster:
+
+- Control Plane (Master Node): Decides where containers should run, manages the cluster, and monitors health.
+- Worker Nodes: Run actual containers (pods).
+
+Even if run it locally on  laptop, still have a “cluster” with a control plane and one node (Minikube simulates this).
+
+# Minikube - Without Cloud Provider
+
+A lightweight tool to run a Kubernetes cluster locally on laptop.
+
+How it works:
+
+- Starts a small virtual machine or Docker container that acts as a Kubernetes node.
+- Runs a single-node cluster with a control plane and worker node.
+
+Think of Minikube as a mini Kubernetes lab on laptop.
+
+# kubectl
+
+The command-line tool for Kubernetes.
+
+Purpose: talk to Kubernetes cluster.
+
+What you can do with it:
+
+- Deploy applications: kubectl apply -f auth-mysql.yaml
+- Check running pods: kubectl get pods
+- Inspect services: kubectl get svc
+- Delete resources: kubectl delete -f auth-mysql.yaml
+
+Think of kubectl as the remote control for Kubernetes cluster.

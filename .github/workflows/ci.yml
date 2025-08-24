@@ -36,6 +36,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
+          pip install pytest
           pip install -r auth-service/requirements.txt
           pip install -r hotel-service/requirements.txt
           pip install -r booking-service/requirements.txt
