@@ -100,6 +100,7 @@ services:
 
   auth-service:
     build: ./auth-service
+    image: auth-service:latest
     container_name: auth-service
     restart: unless-stopped
     env_file:
@@ -119,6 +120,7 @@ services:
 
   hotel-service:
     build: ./hotel-service
+    image: hotel-service:latest
     container_name: hotel-service
     restart: unless-stopped
     env_file:
@@ -138,6 +140,7 @@ services:
 
   booking-service:
     build: ./booking-service
+    image: booking-service:latest
     container_name: booking-service
     restart: unless-stopped
     env_file:
@@ -157,6 +160,7 @@ services:
 
   payment-service:
     build: ./payment-service
+    image: payment-service:latest
     container_name: payment-service
     restart: unless-stopped
     env_file:
