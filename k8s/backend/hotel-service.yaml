@@ -15,11 +15,12 @@ spec:
       containers:
         - name: hotel-service
           image: hotel-service:latest
+          imagePullPolicy: Never
           ports:
-            - containerPort: 8001
+            - containerPort: 8002
           env:
             - name: DATABASE_URL
-              value: mysql://hotel_user:hotelpass@hotel-mysql:3306/hotel_db
+              value: mysql+pymysql://hotel_user:hotelpass@hotel-mysql:3306/hotel_db
             - name: JWT_SECRET_KEY
               value: your_secret
             - name: JWT_ALGORITHM
@@ -35,5 +36,5 @@ spec:
   selector:
     app: hotel-service
   ports:
-    - port: 8001
-      targetPort: 8001
+    - port: 8002
+      targetPort: 8002

@@ -15,11 +15,12 @@ spec:
       containers:
         - name: booking-service
           image: booking-service:latest
+          imagePullPolicy: Never
           ports:
-            - containerPort: 8001
+            - containerPort: 8003
           env:
             - name: DATABASE_URL
-              value: mysql://booking_user:bookingpass@booking-mysql:3306/booking_db
+              value: mysql+pymysql://booking_user:bookingpass@booking-mysql:3306/booking_db
             - name: JWT_SECRET_KEY
               value: your_secret
             - name: JWT_ALGORITHM
@@ -27,7 +28,7 @@ spec:
             - name: CORS_ORIGINS
               value: "*"
             - name: HOTEL_SERVICE_BASE_URL
-              value: http://hotel-service:8001
+              value: http://hotel-service:8002
 ---
 apiVersion: v1
 kind: Service
@@ -37,5 +38,5 @@ spec:
   selector:
     app: booking-service
   ports:
-    - port: 8001
-      targetPort: 8001
+    - port: 8003
+      targetPort: 8003

@@ -15,11 +15,12 @@ spec:
       containers:
         - name: auth-service
           image: auth-service:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8001
           env:
             - name: DATABASE_URL
-              value: mysql://auth_user:authpass@auth-mysql:3306/auth_db
+              value: mysql+pymysql://auth_user:authpass@auth-mysql:3306/auth_db
             - name: JWT_SECRET_KEY
               value: your_secret
             - name: JWT_ALGORITHM

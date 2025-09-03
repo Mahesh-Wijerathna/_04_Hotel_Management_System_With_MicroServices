@@ -1,3 +1,28 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hotel-mysql-init
+data:
+  init.sql: |
+    -- Idempotent schema init for hotel service (MySQL)
+    -- Creates dedicated database, user, and table for hotel-service
+
+    -- Create database
+    CREATE DATABASE IF NOT EXISTS `hotel_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    USE `hotel_db`;
+
+    -- Create services table
+    CREATE TABLE IF NOT EXISTS `services` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `service` VARCHAR(255) NOT NULL,
+      `price` DECIMAL(10,2) NOT NULL,
+      `currency` CHAR(3) NOT NULL DEFAULT 'USD',
+      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY `uq_service_name` (`service`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -16,9 +41,9 @@ metadata:
 type: Opaque
 stringData:
   MYSQL_ROOT_PASSWORD: rootpassword
-  MYSQL_DATABASE: auth_db
-  MYSQL_USER: auth_user
-  MYSQL_PASSWORD: authpass
+  MYSQL_DATABASE: hotel_db
+  MYSQL_USER: hotel_user
+  MYSQL_PASSWORD: hotelpass
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -46,15 +71,14 @@ spec:
             - mountPath: /var/lib/mysql
               name: mysql-storage
             - mountPath: /docker-entrypoint-initdb.d
-              name: initdb
-              readOnly: true
+              name: mysql-init
       volumes:
         - name: mysql-storage
           persistentVolumeClaim:
             claimName: hotel-mysql-pvc
-        - name: initdb
-          hostPath:
-            path: ./hotel-service/db
+        - name: mysql-init
+          configMap:
+            name: hotel-mysql-init
 ---
 apiVersion: v1
 kind: Service
