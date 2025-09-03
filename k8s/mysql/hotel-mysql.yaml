@@ -7,54 +7,54 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hotel-mysql-secret
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: rootpassword
+  MYSQL_DATABASE: auth_db
+  MYSQL_USER: auth_user
+  MYSQL_PASSWORD: authpass
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: hotel-mysql
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: hotel-mysql
-  serviceName: "hotel-mysql"
-  replicas: 1
   template:
     metadata:
       labels:
         app: hotel-mysql
     spec:
       containers:
-      - name: hotel-mysql
-        image: mysql:8.0
-        ports:
-        - containerPort: 3306
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: hotel-mysql-secret
-              key: root-password
-        - name: MYSQL_DATABASE
-          value: hotel_db
-        - name: MYSQL_USER
-          value: hotel_user
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: hotel-mysql-secret
-              key: user-password
-        volumeMounts:
-        - name: hotel-mysql-data
-          mountPath: /var/lib/mysql
-  volumeClaimTemplates:
-  - metadata:
-      name: hotel-mysql-data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 5Gi
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - secretRef:
+                name: hotel-mysql-secret
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-storage
+            - mountPath: /docker-entrypoint-initdb.d
+              name: initdb
+              readOnly: true
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: hotel-mysql-pvc
+        - name: initdb
+          hostPath:
+            path: ./hotel-service/db
 ---
 apiVersion: v1
 kind: Service
@@ -62,8 +62,7 @@ metadata:
   name: hotel-mysql
 spec:
   ports:
-  - port: 3306
-    targetPort: 3306
-  clusterIP: None
+    - port: 3306
+      targetPort: 3306
   selector:
     app: hotel-mysql

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: node:20-alpine
+          workingDir: /app
+          command: [ "sh", "-c", "npm install && npm run dev" ]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: frontend-code
+              mountPath: /app
+          env:
+            - name: VITE_API_BASE
+              value: http://gateway:80
+      volumes:
+        - name: frontend-code
+          hostPath:
+            path: ./frontend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30001

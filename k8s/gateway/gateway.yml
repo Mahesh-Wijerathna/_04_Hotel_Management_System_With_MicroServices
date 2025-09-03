@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  nginx.conf: |
+    events {}
+    http {
+      upstream auth_service {
+        server auth-service:8001;
+      }
+      upstream hotel_service {
+        server hotel-service:8002;
+      }
+      upstream booking_service {
+        server booking-service:8003;
+      }
+      upstream payment_service {
+        server payment-service:8004;
+      }
+      server {
+        listen 80;
+        location /auth/ {
+          proxy_pass http://auth_service;
+        }
+        location /hotel/ {
+          proxy_pass http://hotel_service;
+        }
+        location /booking/ {
+          proxy_pass http://booking_service;
+        }
+        location /payment/ {
+          proxy_pass http://payment_service;
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+spec:
+  type: NodePort
+  selector:
+    app: gateway
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080

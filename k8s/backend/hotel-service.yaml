@@ -13,22 +13,27 @@ spec:
         app: hotel-service
     spec:
       containers:
-      - name: hotel-service
-        image: umeshgayashan/hotel-service:latest
-        ports:
-        - containerPort: 8001
-        env:
-        - name: DATABASE_URL
-          value: mysql+pymysql://hotel_user:YourUserPassword@hotel-mysql:3306/hotel_db
+        - name: hotel-service
+          image: hotel-service:latest
+          ports:
+            - containerPort: 8001
+          env:
+            - name: DATABASE_URL
+              value: mysql://hotel_user:hotelpass@hotel-mysql:3306/hotel_db
+            - name: JWT_SECRET_KEY
+              value: your_secret
+            - name: JWT_ALGORITHM
+              value: HS256
+            - name: CORS_ORIGINS
+              value: "*"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: hotel-service
 spec:
-  type: ClusterIP
-  ports:
-  - port: 8001
-    targetPort: 8001
   selector:
     app: hotel-service
+  ports:
+    - port: 8001
+      targetPort: 8001

@@ -7,54 +7,54 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: payment-mysql-secret
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: rootpassword
+  MYSQL_DATABASE: auth_db
+  MYSQL_USER: auth_user
+  MYSQL_PASSWORD: authpass
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: payment-mysql
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: payment-mysql
-  serviceName: "payment-mysql"
-  replicas: 1
   template:
     metadata:
       labels:
         app: payment-mysql
     spec:
       containers:
-      - name: payment-mysql
-        image: mysql:8.0
-        ports:
-        - containerPort: 3306
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: payment-mysql-secret
-              key: root-password
-        - name: MYSQL_DATABASE
-          value: payment_db
-        - name: MYSQL_USER
-          value: payment_user
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: payment-mysql-secret
-              key: user-password
-        volumeMounts:
-        - name: payment-mysql-data
-          mountPath: /var/lib/mysql
-  volumeClaimTemplates:
-  - metadata:
-      name: payment-mysql-data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 5Gi
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - secretRef:
+                name: payment-mysql-secret
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-storage
+            - mountPath: /docker-entrypoint-initdb.d
+              name: initdb
+              readOnly: true
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: payment-mysql-pvc
+        - name: initdb
+          hostPath:
+            path: ./payment-service/db
 ---
 apiVersion: v1
 kind: Service
@@ -62,8 +62,7 @@ metadata:
   name: payment-mysql
 spec:
   ports:
-  - port: 3306
-    targetPort: 3306
-  clusterIP: None
+    - port: 3306
+      targetPort: 3306
   selector:
     app: payment-mysql

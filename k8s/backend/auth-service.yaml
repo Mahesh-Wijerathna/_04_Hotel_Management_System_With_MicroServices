@@ -13,22 +13,29 @@ spec:
         app: auth-service
     spec:
       containers:
-      - name: auth-service
-        image: umeshgayashan/auth-service:latest
-        ports:
-        - containerPort: 8001
-        env:
-        - name: DATABASE_URL
-          value: mysql+pymysql://auth_user:YourUserPassword@auth-mysql:3306/auth_db
+        - name: auth-service
+          image: auth-service:latest
+          ports:
+            - containerPort: 8001
+          env:
+            - name: DATABASE_URL
+              value: mysql://auth_user:authpass@auth-mysql:3306/auth_db
+            - name: JWT_SECRET_KEY
+              value: your_secret
+            - name: JWT_ALGORITHM
+              value: HS256
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              value: "30"
+            - name: CORS_ORIGINS
+              value: "*"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: auth-service
 spec:
-  type: ClusterIP
-  ports:
-  - port: 8001
-    targetPort: 8001
   selector:
     app: auth-service
+  ports:
+    - port: 8001
+      targetPort: 8001
