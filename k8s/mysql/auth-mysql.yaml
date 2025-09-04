@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: auth-mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: auth-mysql
+spec:
+  selector:
+    matchLabels:
+      app: auth-mysql
+  serviceName: "auth-mysql"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: auth-mysql
+    spec:
+      containers:
+      - name: auth-mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: auth-mysql-secret
+              key: root-password
+        - name: MYSQL_DATABASE
+          value: auth_db
+        - name: MYSQL_USER
+          value: auth_user
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: auth-mysql-secret
+              key: user-password
+        volumeMounts:
+        - name: auth-mysql-data
+          mountPath: /var/lib/mysql
+        # 👇 Health checks
+        livenessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD"
+          initialDelaySeconds: 30   # wait before starting probe
+          periodSeconds: 10         # check every 10s
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD"
+          initialDelaySeconds: 10   # shorter delay for readiness
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+  volumeClaimTemplates:
+  - metadata:
+      name: auth-mysql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-mysql
+spec:
+  ports:
+  - port: 3306
+    targetPort: 3306
+  clusterIP: None
+  selector:
+    app: auth-mysql
