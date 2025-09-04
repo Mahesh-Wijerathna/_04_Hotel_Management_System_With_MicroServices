@@ -1,31 +1,22 @@
 import React from 'react'
 import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
 
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
-export default function Login() {
+export default function StaffRegister() {
   const [email, setEmail] = React.useState('staff@example.com')
   const [password, setPassword] = React.useState('Passw0rd!123')
+  const [fullName, setFullName] = React.useState('Staff User')
   const [message, setMessage] = React.useState<string | null>(null)
-  const navigate = useNavigate()
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setMessage(null)
     try {
-      const res = await axios.post(`${API}/api/v1/auth/login`, { email, password })
-      const token = res.data?.access_token
-      if (token) {
-        localStorage.setItem('jwtToken', token)
-        setMessage('Logged in')
-        window.dispatchEvent(new Event('authChange'))
-        navigate('/')
-      } else {
-        setMessage('No token returned')
-      }
+      const res = await axios.post(`${API}/api/v1/auth/register`, { email, password, full_name: fullName, role: 'staff' })
+      setMessage(res.status === 201 ? 'Staff Registered' : `Status ${res.status}`)
     } catch (err: any) {
-      setMessage(err?.response?.data?.detail || 'Login failed')
+      setMessage(err?.response?.data?.detail || 'Register failed')
     }
   }
 
@@ -38,7 +29,7 @@ export default function Login() {
       borderRadius: "8px",
       boxShadow: "0 4px 8px rgba(0,0,0,0.1)"
     }}>
-      <h2 style={{color: "#34C759", textAlign: "center"}}>Login</h2>
+      <h2 style={{color: "#34C759", textAlign: "center"}}>Staff Register</h2>
       <form onSubmit={onSubmit} style={{display:'grid',gap:16}}>
         <input
           placeholder="Email"
@@ -63,6 +54,17 @@ export default function Login() {
             fontSize: "16px"
           }}
         />
+        <input
+          placeholder="Full name"
+          value={fullName}
+          onChange={e=>setFullName(e.target.value)}
+          style={{
+            padding: "12px",
+            border: "1px solid #007AFF",
+            borderRadius: "4px",
+            fontSize: "16px"
+          }}
+        />
         <button
           type="submit"
           style={{
@@ -74,11 +76,11 @@ export default function Login() {
             fontSize: "16px",
             cursor: "pointer"
           }}
-        >Login</button>
+        >Register as Staff</button>
       </form>
       {message && <p style={{
         marginTop: "16px",
-        color: message === 'Logged in' ? "#34C759" : "#FF3B30",
+        color: message === 'Staff Registered' ? "#34C759" : "#FF3B30",
         textAlign: "center"
       }}>{message}</p>}
     </div>
