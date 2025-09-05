@@ -13,22 +13,30 @@ spec:
         app: payment-service
     spec:
       containers:
-      - name: payment-service
-        image: umeshgayashan/payment-service:latest
-        ports:
-        - containerPort: 8001
-        env:
-        - name: DATABASE_URL
-          value: mysql+pymysql://payment_user:YourUserPassword@payment-mysql:3306/payment_db
+        - name: payment-service
+          image: payment-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8004
+          env:
+            - name: DATABASE_URL
+              value: mysql+pymysql://payment_user:paymentpass@payment-mysql:3306/payment_db
+            - name: JWT_SECRET_KEY
+              value: your_secret
+            - name: JWT_ALGORITHM
+              value: HS256
+            - name: CORS_ORIGINS
+              value: "*"
+            - name: BOOKING_SERVICE_URL
+              value: http://booking-service:8003
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: payment-service
 spec:
-  type: ClusterIP
-  ports:
-  - port: 8001
-    targetPort: 8001
   selector:
     app: payment-service
+  ports:
+    - port: 8004
+      targetPort: 8004

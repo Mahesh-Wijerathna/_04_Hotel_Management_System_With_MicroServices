@@ -1,3 +1,28 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hotel-mysql-init
+data:
+  init.sql: |
+    -- Idempotent schema init for hotel service (MySQL)
+    -- Creates dedicated database, user, and table for hotel-service
+
+    -- Create database
+    CREATE DATABASE IF NOT EXISTS `hotel_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    USE `hotel_db`;
+
+    -- Create services table
+    CREATE TABLE IF NOT EXISTS `services` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `service` VARCHAR(255) NOT NULL,
+      `price` DECIMAL(10,2) NOT NULL,
+      `currency` CHAR(3) NOT NULL DEFAULT 'USD',
+      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY `uq_service_name` (`service`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -7,54 +32,53 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hotel-mysql-secret
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: rootpassword
+  MYSQL_DATABASE: hotel_db
+  MYSQL_USER: hotel_user
+  MYSQL_PASSWORD: hotelpass
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: hotel-mysql
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: hotel-mysql
-  serviceName: "hotel-mysql"
-  replicas: 1
   template:
     metadata:
       labels:
         app: hotel-mysql
     spec:
       containers:
-      - name: hotel-mysql
-        image: mysql:8.0
-        ports:
-        - containerPort: 3306
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: hotel-mysql-secret
-              key: root-password
-        - name: MYSQL_DATABASE
-          value: hotel_db
-        - name: MYSQL_USER
-          value: hotel_user
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: hotel-mysql-secret
-              key: user-password
-        volumeMounts:
-        - name: hotel-mysql-data
-          mountPath: /var/lib/mysql
-  volumeClaimTemplates:
-  - metadata:
-      name: hotel-mysql-data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 5Gi
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - secretRef:
+                name: hotel-mysql-secret
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-storage
+            - mountPath: /docker-entrypoint-initdb.d
+              name: mysql-init
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: hotel-mysql-pvc
+        - name: mysql-init
+          configMap:
+            name: hotel-mysql-init
 ---
 apiVersion: v1
 kind: Service
@@ -62,8 +86,7 @@ metadata:
   name: hotel-mysql
 spec:
   ports:
-  - port: 3306
-    targetPort: 3306
-  clusterIP: None
+    - port: 3306
+      targetPort: 3306
   selector:
     app: hotel-mysql
